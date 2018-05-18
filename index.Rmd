@@ -1,30 +1,51 @@
 ---
-title: "Test Webpage"
-author: "Jared Kibele"
-date: "5/17/2018"
+title: Page Test With Map and Stuff
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup}
+suppressPackageStartupMessages({
+  library(leaflet)
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  library(DT)
+})
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+esc <- read.csv("data/escapement_counts.csv", stringsAsFactors = FALSE)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+median_esc <- esc %>% 
+  separate(sampleDate, c("Year", "Month", "Day"), sep = "-") %>% 
+  group_by(Species, SASAP.Region, Year, Location) %>%
+  summarize(escapement = sum(DailyCount)) %>%
+  group_by(Species) %>%
+  summarize(median_escapement = median(escapement))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+ggplot(median_esc, aes(Species, median_escapement)) +
+  geom_col() +
+  coord_flip()
+```
+
+```{r}
+locations <- esc %>% 
+  distinct(Location, Latitude, Longitude) %>% 
+  drop_na()
+```
+
+```{r}
+datatable(locations)
+```
+
+
+```{r}
+leaflet(locations) %>% 
+  addTiles() %>% 
+  addMarkers(~ Longitude, ~ Latitude, popup = ~ Location)
+```
+
